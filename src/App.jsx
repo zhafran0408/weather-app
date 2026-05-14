@@ -1,146 +1,184 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { 
+  MapPin, Droplets, Wind, Sunrise, Sunset, 
+  Sun, Moon, Calendar, Cloud, CloudRain, CloudLightning, CloudSun,
+  Zap // Kita pakai Zap sebagai simbol 'Pulse' yang kecil
+} from "lucide-react";
 
-const WeatherCard = ({ data }) => {
-  if (!data || !data.name) return null;
+// Import komponen hasil pisahan
+import Search from "./components/SearchBar";
+import WeatherCard from "./components/WeatherCard";
 
-  const formatJam = (unixTimestamp) => {
-    const date = new Date(unixTimestamp * 1000);
-    return date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
-  };
-
-  return (
-    <div className="w-full bg-white/10 backdrop-blur-xl rounded-[2.5rem] p-10 shadow-2xl border border-white/10 animate-in fade-in zoom-in duration-500 text-white">
-      <div className="flex flex-col items-center">
-        <div className="mb-6">
-          <h2 className="text-2xl font-black tracking-widest uppercase text-blue-200">
-            {data.name}
-          </h2>
-        </div>
-
-        <div className="flex flex-col md:flex-row items-center gap-10 mb-10">
-          <div className="relative">
-            <div className="absolute inset-0 bg-blue-500/30 blur-3xl rounded-full"></div>
-            <img 
-              src={`https://openweathermap.org/img/wn/${data.weather[0].icon}@4x.png`} 
-              className="w-48 h-48 relative drop-shadow-[0_20px_50px_rgba(59,130,246,0.5)]" 
-              alt="cuaca" 
-            />
-          </div>
-          
-          <div className="text-center md:text-left">
-            <div className="flex items-start justify-center md:justify-start">
-              <span className="text-[120px] font-black leading-none tracking-tighter bg-gradient-to-b from-white to-blue-200 bg-clip-text text-transparent">
-                {data.main.temp.toFixed()}
-              </span>
-              <span className="text-4xl font-black text-cyan-400 mt-4">°</span>
-            </div>
-            <p className="text-2xl font-bold text-blue-200 capitalize tracking-tight -mt-4">
-              {data.weather[0].description}
-            </p>
-          </div>
-        </div>
-
-        <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-6 p-8 bg-blue-900/20 rounded-[2rem] border border-white/5">
-          {[
-            { label: "Kelembapan", value: `${data.main.humidity}%` },
-            { label: "Kec. Angin", value: `${data.wind.speed} m/s` },
-            { label: "Terbit", value: formatJam(data.sys.sunrise) },
-            { label: "Terbenam", value: formatJam(data.sys.sunset) }
-          ].map((item, i) => (
-            <div key={i} className="text-center">
-              <p className="text-[10px] font-black uppercase text-cyan-400 tracking-widest mb-1">{item.label}</p>
-              <p className="text-lg font-bold text-white">{item.value}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-function App() {
+export default function App() {
   const [data, setData] = useState(null);
   const [lokasi, setLokasi] = useState("");
-  const [riwayat, setRiwayat] = useState([]); 
-  const API_KEY = import.meta.env.VITE_WEATHER_KEY;
+  const [isNight, setIsNight] = useState(false);
 
-  useEffect(() => {
-    ambilCuaca("Jakarta"); 
-    const simpananRiwayat = JSON.parse(localStorage.getItem("riwayatKota")) || [];
-    setRiwayat(simpananRiwayat);
-  }, []);
-
-  const ambilCuaca = async (namaKota) => {
-    if (!namaKota) return;
+  const ambilCuaca = async (name) => {
+    if (!name) return;
     try {
-      const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?q=${namaKota}&units=metric&appid=${API_KEY}&lang=id`);
+      const res = await axios.get(
+        `https://api.openweathermap.org/data/2.5/weather?q=${name}&units=metric&appid=${import.meta.env.VITE_WEATHER_KEY}&lang=id`
+      );
       setData(res.data);
-      setRiwayat(prev => {
-        const baru = [namaKota, ...prev.filter(c => c.toLowerCase() !== namaKota.toLowerCase())].slice(0, 5);
-        localStorage.setItem("riwayatKota", JSON.stringify(baru));
-        return baru;
-      });
+      setLokasi(""); 
     } catch (err) {
-      if (lokasi) alert("Kota tidak ditemukan");
+      console.error("Gagal mengambil data.");
     }
   };
 
+  useEffect(() => {
+    ambilCuaca("Yogyakarta");
+  }, []);
+
+  const formatNamaKota = (name) => {
+    if (!name) return "Memuat...";
+    if (name === "Daerah Istimewa Yogyakarta") return "DIY Yogyakarta";
+    return name.length > 20 ? name.substring(0, 17) + "..." : name;
+  };
+
+  const renderIcon = () => {
+    if (!data) return <Cloud size={80} className="text-white opacity-20 animate-pulse" />;
+    const kondisi = data.weather[0].main;
+    const props = { size: 120, className: "text-white drop-shadow-2xl animate-bounce-slow" };
+    
+    if (kondisi === "Clear") return <Sun {...props} className="text-yellow-300" />;
+    if (kondisi === "Rain") return <CloudRain {...props} className="text-blue-100" />;
+    if (kondisi === "Thunderstorm") return <CloudLightning {...props} className="text-purple-300" />;
+    return <Cloud {...props} className="text-slate-100" />;
+  };
+
   return (
-    <div className="min-h-screen bg-[#0a192f] flex flex-col font-sans text-white">
-      <nav className="bg-[#0a192f]/50 backdrop-blur-md border-b border-white/10 px-8 py-5 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <span className="text-xl">☁️</span>
+    <div className={`min-h-screen w-full flex flex-col items-center justify-start md:justify-center font-sans transition-all duration-1000 ${
+      isNight ? "bg-[#020617]" : "bg-[#f8fafc]"
+    }`}>
+      
+      {/* MAIN CONTAINER */}
+      <div className={`relative w-full min-h-screen md:min-h-[850px] md:h-auto md:max-w-4xl flex flex-col md:flex-row md:rounded-[3.5rem] shadow-2xl overflow-visible md:overflow-hidden ${
+        isNight ? "bg-slate-900" : "bg-white"
+      }`}>
+        
+        {/* TOP SECTION (HERO) */}
+        <div className={`relative flex-[1.4] p-8 md:p-14 flex flex-col items-center justify-between text-white transition-all duration-1000 min-h-[65vh] md:min-h-0 ${
+          isNight ? "bg-gradient-to-br from-indigo-600 via-indigo-900 to-slate-950" : "bg-gradient-to-br from-blue-400 via-blue-600 to-indigo-700"
+        }`}>
+          
+          {/* Logo SkyPulse & Mode Toggle */}
+          <div className="w-full flex justify-between items-center z-10">
+            <div className="flex items-center gap-2 group">
+              <div className="bg-white/20 p-2 rounded-xl backdrop-blur-md border border-white/20">
+                <Cloud size={20} className="text-white fill-white/20" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black tracking-[0.3em] leading-none uppercase">SkyPulse</span>
+                <span className="text-[7px] font-bold tracking-[0.1em] opacity-50 uppercase">Weather App</span>
+              </div>
             </div>
-            <h1 className="text-2xl font-black tracking-tighter uppercase">Weather <span className="text-cyan-400">App</span></h1>
+            <button 
+              onClick={() => setIsNight(!isNight)} 
+              className="p-3 bg-white/20 backdrop-blur-xl rounded-2xl border border-white/20 active:scale-90 transition-all hover:bg-white/30"
+            >
+              {isNight ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
           </div>
-          <div className="w-full max-w-md relative">
-            <input
-              value={lokasi}
-              onChange={(e) => setLokasi(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && (ambilCuaca(lokasi), setLokasi(""))}
-              placeholder="Cari Kota Sekarang..."
-              className="w-full bg-white/5 border-2 border-white/10 rounded-2xl py-3 px-6 text-sm font-bold text-white outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10 transition-all shadow-inner placeholder:text-white/20"
-            />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+
+          {/* Suhu Utama & Icon */}
+          <div className="flex flex-col items-center z-10 text-center transform md:scale-110">
+            <div className="relative mb-6">
+               <div className="absolute inset-0 bg-white/30 blur-[80px] rounded-full scale-150 animate-pulse"></div>
+               {renderIcon()}
             </div>
+            <div className="relative">
+              <h2 className="text-[9rem] md:text-[11rem] font-black tracking-tighter italic leading-[0.8] mb-4">
+                {data ? Math.round(data.main.temp) : "--"}<span className="text-5xl align-top inline-block mt-8">°</span>
+              </h2>
+              <div className="flex items-center gap-3 bg-black/20 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 shadow-lg">
+                <MapPin size={12} className="text-white/70" />
+                <p className="text-[10px] font-black uppercase tracking-[0.2em]">
+                  {formatNamaKota(data?.name)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Info Bar */}
+          <div className="w-full flex justify-between items-end z-10 border-t border-white/10 pt-8 mt-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black uppercase opacity-50 tracking-widest">Update Terakhir</span>
+              <span className="text-lg font-black tracking-tighter italic uppercase">
+                {new Date().toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
+              </span>
+            </div>
+            <Calendar size={20} className="opacity-60" />
           </div>
         </div>
-      </nav>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full grid grid-cols-1 md:grid-cols-12 gap-10 p-8">
-        <aside className="md:col-span-3 order-2 md:order-1">
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-400 mb-6 px-2">Riwayat Pencarian</h3>
-          <div className="flex flex-col gap-3">
-            {riwayat.map((c, i) => (
-              <button key={i} onClick={() => ambilCuaca(c)} className="text-left px-6 py-4 rounded-2xl bg-white/5 border border-white/5 hover:border-cyan-400/50 font-bold text-blue-100 hover:text-white transition-all capitalize shadow-sm active:scale-95">
-                {c}
-              </button>
-            ))}
+        {/* BOTTOM SECTION (DATA) */}
+        <div className="flex-1 p-8 md:p-14 flex flex-col gap-10 bg-transparent relative z-20">
+          
+          <Search 
+            lokasi={lokasi} 
+            setLokasi={setLokasi} 
+            onSearch={() => ambilCuaca(lokasi)} 
+            isNight={isNight} 
+          />
+
+          <div className="grid grid-cols-2 gap-5 md:gap-6">
+            <WeatherCard label="HUMIDITY" val={`${data?.main.humidity || 0}%`} Icon={Droplets} color="text-blue-500" isNight={isNight} />
+            <WeatherCard label="WIND SPEED" val={`${data?.wind.speed || 0} m/s`} Icon={Wind} color="text-emerald-500" isNight={isNight} />
+            <WeatherCard 
+              label="SUNRISE" 
+              val={data ? new Date(data.sys.sunrise * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "--:--"} 
+              Icon={Sunrise} color="text-orange-500" isNight={isNight} 
+            />
+            <WeatherCard 
+              label="SUNSET" 
+              val={data ? new Date(data.sys.sunset * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : "--:--"} 
+              Icon={Sunset} color="text-indigo-500" isNight={isNight} 
+            />
           </div>
-        </aside>
-        <section className="md:col-span-9 order-1 md:order-2">
-          {data ? <WeatherCard data={data} /> : (
-            <div className="h-96 flex items-center justify-center">
-              <div className="w-10 h-10 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin"></div>
-            </div>
-          )}
-        </section>
-      </main>
 
-      <footer className="py-10 text-center border-t border-white/5">
-        <p className="text-[10px] font-black tracking-[0.5em] uppercase text-white/20">☁️ Weather App • 2026</p>
-      </footer>
+          {/* FOOTER - Rapi & Minimalis */}
+          <div className="mt-auto pt-10 border-t border-slate-500/10 flex flex-col items-center gap-4">
+             <div className="flex gap-4 overflow-x-auto no-scrollbar w-full pb-2">
+                {["Jakarta", "Bali", "Tokyo", "London"].map(city => (
+                  <button 
+                    key={city} 
+                    onClick={() => ambilCuaca(city)} 
+                    className={`px-6 py-2.5 rounded-2xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all active:scale-95 ${
+                      isNight ? "bg-white/5 border border-white/10 text-white" : "bg-white shadow-sm border border-slate-200 text-slate-900"
+                    }`}
+                  >
+                    {city}
+                  </button>
+                ))}
+             </div>
+             
+             {/* Credit Footer */}
+             <div className={`flex items-center gap-2 opacity-30 text-[9px] font-black uppercase tracking-[0.3em] ${isNight ? 'text-white' : 'text-slate-900'}`}>
+                <span>© 2026 SkyPulse</span>
+                <div className="w-1 h-1 rounded-full bg-current"></div>
+                <span>Premium Experience</span>
+             </div>
+          </div>
+          
+          <div className="h-4 md:hidden"></div>
+        </div>
+      </div>
+
+      <style jsx>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes bounce-slow {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-15px); }
+        }
+        .animate-bounce-slow { animation: bounce-slow 4s infinite ease-in-out; }
+      `}</style>
+
     </div>
   );
 }
-
-export default App;
-
 
 

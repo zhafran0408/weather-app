@@ -1,15 +1,25 @@
-<div className="w-full max-w-md relative">
-  <input
-    value={lokasi}
-    onChange={(e) => setLokasi(e.target.value)}
-    onKeyDown={(e) => e.key === "Enter" && (ambilCuaca(lokasi), setLokasi(""))}
-    placeholder="Cari Kota Sekarang..."
-    className="w-full bg-white/5 border-2 border-white/10 rounded-2xl py-3 px-6 text-sm font-bold text-white outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10 transition-all shadow-inner placeholder:text-white/20"
-  />
+import React from "react";
+import { Search as SearchIcon } from "lucide-react";
 
-  <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-20">
-    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-    </svg>
-  </div>
-</div>
+const Search = ({ lokasi, setLokasi, onSearch, isNight }) => {
+  return (
+    <div className={`group flex items-center gap-4 p-5 rounded-[2rem] border transition-all duration-300 shadow-sm ${
+      isNight 
+        ? "bg-white/5 border-white/10 focus-within:border-indigo-500/50 focus-within:bg-white/10" 
+        : "bg-slate-50 border-slate-200 focus-within:border-blue-400 focus-within:bg-white focus-within:shadow-xl"
+    }`}>
+      <SearchIcon size={20} className="opacity-30 group-focus-within:opacity-100 transition-opacity" />
+      <input 
+        value={lokasi} 
+        onChange={(e) => setLokasi(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && onSearch()}
+        placeholder="CARI KOTA..." 
+        className={`bg-transparent flex-1 outline-none font-black text-xs tracking-[0.2em] uppercase placeholder:opacity-20 ${
+          isNight ? 'text-white' : 'text-slate-800'
+        }`}
+      />
+    </div>
+  );
+};
+
+export default Search;
